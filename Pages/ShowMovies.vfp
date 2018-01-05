@@ -1,0 +1,151 @@
+<apex:page controller="MovieController" id="movie_page">
+    <style type="text/css">
+        .moviePopup{
+            background-color: white;
+            border-style: solid;
+            border-width: 2px;
+            left: 35%;
+            padding: 10px;
+            position: absolute;
+            z-index: 9999;
+            width: 500px;
+            top: 20%;
+        }        
+        </style>
+    <apex:includeScript value="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"/>  
+    <apex:stylesheet value="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/ui-lightness/jquery-ui.css"/>
+    <script>
+        var idToDelete;
+        var result;            
+        function delete_movie(id,elem){
+            var row = $(elem).parent();
+            var deleteButton = $("#movie_page\\:movie_form\\:pgBlock\\:paginator\\:paginatorSection\\:buttonDel"); 
+            var t_body = $("#movie_page\\:movie_form\\:pgBlock\\:paginator\\:moviesTable\\:tb");
+            var tr = $(t_body[0].children);       
+            var deselecting = false;           
+            if (row.hasClass('selected')) {
+                deselecting = true;
+            }
+            tr.each(function(){$(this).removeClass('selected');}); 
+            if (!deselecting && deleteButton != null) {
+                row.addClass('selected');
+                $('tr').removeClass('ui-state-highlight');
+                $(elem).parent().addClass('ui-state-highlight'); 
+                deleteButton[0].disabled = false;
+                deleteButton.removeClass('btnDisabled');  
+                deleteButton.addClass('btn'); 
+                deleteButton.attr('onclick','assignMovieId()');
+            }
+            if (deselecting && deleteButton != null) {
+                row.removeClass('selected');
+                $('tr').removeClass('ui-state-highlight'); 
+                deleteButton[0].disabled = true;
+                deleteButton.removeClass('btn');  
+                deleteButton.addClass('btnDisabled'); 
+                deleteButton.attr('onclick','assignMovieId()');
+            }          
+            idToDelete = id;            
+        }
+        function assignMovieId(){
+            $('tr').removeClass('ui-state-highlight');
+            var deleteButton = $("#movie_page\\:movie_form\\:pgBlock\\:paginator\\:paginatorSection\\:buttonDel");
+            if(deleteButton != null){
+                deleteButton[0].disabled = true;
+                deleteButton.removeClass('btn');  
+                deleteButton.addClass('btnDisabled'); 
+                deleteButton.attr('onclick','assignMovieId()');
+            }
+            movieToDelete(idToDelete);
+        }
+        function checkFields(){
+            var res = false;
+            var btn = $("#movie_page\\:movie_form\\:pgBlock\\:addMovie");
+            var name = $("#movie_page\\:movie_form\\:pgBlock\\:pgbSection\\:movie_name")[0].value;
+            var year = $("#movie_page\\:movie_form\\:pgBlock\\:pgbSection\\:movie_year")[0].value;
+            var genres = $("#movie_page\\:movie_form\\:pgBlock\\:pgbSection\\:movie_genres")[0].value;
+            var description = $("#movie_page\\:movie_form\\:pgBlock\\:pgbSection\\:movie_description")[0].value;
+            if(name != "" && year != "" && genres != "" && description != ""){
+                res = true;
+                result = true;
+            }
+            if(btn != null && res == true){
+                btn[0].disabled = false;
+                btn.removeClass('btnDisabled');  
+                btn.addClass('btn');
+                btn.attr('onclick','addMovie()');
+            }else{
+                btn[0].disabled = true;
+                btn.removeClass('btn');  
+                btn.addClass('btnDisabled');
+                btn.attr('onclick','addMovie()');
+            }
+        }
+        function addMovie(){
+            var btn = $("#movie_page\\:movie_form\\:pgBlock\\:addMovie");
+            if(btn != null){
+                btn[0].disabled = true;
+                btn.removeClass('btn');  
+                btn.addClass('btnDisabled'); 
+                btn.attr('onclick','addMovie()');
+            }
+            movieToAdd(result);
+        }
+    </script>
+    <apex:form id="movie_form">
+            <apex:pageBlock title="Movies" id="pgBlock">
+                <apex:pageBlockSection columns="1" id="paginator">
+                    <apex:pageBlockTable columnsWidth="120px,35px,175px,900px" value="{!paginateMovies}" var="info" id="moviesTable" >
+                        <apex:repeat value="{!info.headerList}" var="actualHeader">                       
+                            <apex:column style="cursor:pointer" onclick="delete_movie({!info.headerList[0].value},this);" rendered="{!IF(actualHeader.label == 'id',false,true)}">
+                                <apex:outputText value="{!actualHeader.value}"/>
+                            </apex:column>
+                        </apex:repeat>                    
+                        <apex:repeat value="{!showHeaders}" var="header" id="headers" >
+                                 <apex:column styleclass="{!header}">
+                                    <apex:facet name="header">
+                                        <apex:commandLink action="{!sortMovies}" reRender="moviesTable, headers, directionImage">
+                                            <apex:outputText value="{!header}"/>
+                                            <apex:param assignTo="{!sorting}" value="{!IF(sorting == 'DESC','ASC','DESC')}" name="{!header}{!sorting}"/>
+                                            <apex:param assignTo="{!sortBy}" value="{!header}" name="{!header}"/>
+                                            <apex:image value="/s.gif" styleClass="{!IF(sorting == 'DESC','sortDesc','sortAsc')}" rendered="{!(sortBy == header)}"/>
+                                        </apex:commandLink>
+                                    </apex:facet>
+                                </apex:column>
+                        </apex:repeat>                    
+                    </apex:pageBlockTable>
+                    <apex:pageBlockSectionItem id="paginatorSection">
+                        <apex:panelgrid id="panel" columns="6" columnclasses="footColumn" style="display: inline-block; width: 70%; margin-left: 125%; text-align: center;">
+                            <apex:commandbutton rerender="paginator" value="<< First" action="{!first}" disabled="{!!hasPrevious}" title="First Page" />
+                            <apex:commandbutton rerender="paginator" value="< Previous" action="{!previous}" disabled="{!!hasPrevious}" title="Previous Page" />
+                            <apex:commandButton value="Add" action="{!showPopup}" rerender="popup" status="status"/>
+                            <apex:commandbutton rerender="paginator" id="buttonDel" value="Delete" disabled="true" title="Delete"/>
+                            <apex:commandbutton rerender="paginator" value="Next >" action="{!next}" disabled="{!!hasNext}" title="Next Page" />
+                            <apex:commandbutton rerender="paginator" value="Last >>" action="{!last}" disabled="{!!hasNext}" title="Last Page" />
+                        </apex:panelgrid>
+                        <apex:panelgrid columns="9" columnclasses="footColumn" style="float:right;">
+                            <apex:outputText value="Showing {!minMovies} to {!maxMovies} of {!moviesSize} "/>
+                        </apex:panelgrid>
+                    </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <apex:outputPanel id="popup">
+                <apex:outputPanel id="addMoviePopup" styleClass="moviePopup" layout="block" rendered="{!displayPopUp}">
+                    <apex:commandButton value="X" action="{!closePopup}" style="float: right;" rerender="popup" />
+                    <apex:pageBlockSection title="New Movie" columns="1" collapsible="false" id="pgbSection">
+                        <apex:inputHidden id="movie_id" value="{!movie.id__c}"/>                        
+                        <apex:inputField id="movie_name" value="{!movie.name}" onchange="checkFields();"/>
+                        <apex:inputField id="movie_year" value="{!movie.year__c}" onchange="checkFields();"/>
+                        <apex:inputField id="movie_genres" value="{!movie.genres__c}" onchange="checkFields();"/>
+                        <apex:inputField id="movie_description" value="{!movie.description__c}" onchange="checkFields();"/>
+                    </apex:pageBlockSection>    
+                    <apex:commandButton id="addMovie" value="Add" style="float:right;" reRender="pgBlock,popup" disabled="true"/>
+                </apex:outputPanel>
+            </apex:outputPanel>
+        </apex:pageBlock>
+        <apex:actionFunction name="movieToDelete" action="{!DeleteMovie}" reRender="movie_form" >
+           <apex:param name="movieid" assignTo="{!SelectedMovieId}" value=""/>
+        </apex:actionFunction>
+        <apex:actionFunction name="movieToAdd" action="{!addNewMovie}" reRender="movie_form" >
+           <apex:param name="movieAdd" assignTo="{!isMovie}" value=""/>
+        </apex:actionFunction>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,59 @@
+public class MovieWrapper extends MoviePaginatorWrapper {
+    public String Name {
+        get;
+        private set;
+    }
+    public String description {
+        get;
+        private set;
+    }
+    public String year {
+        get;
+        private set;
+    }
+    public String id{
+        get;
+        private set;
+    }
+    public List<String> genres {
+        get;
+        private set;
+    }
+    
+    public MovieWrapper (Movie__c movie){
+        this.id = movie.id__c;
+        this.name = movie.name;
+        this.year = movie.year__c;
+        this.description = movie.description__c;
+        this.genres = movie.genres__c.split(';');        
+        populateHeader();
+    }
+    
+    public override Integer compareTo(Object obj){
+        MovieWrapper movieObj = (MovieWrapper)obj;
+        Integer sortDirection = sorting == 'ASC' ? 1 : -1;
+        if(sortBy == 'title'){
+            return this.name.compareTo(movieObj.name)*sortDirection;
+        }else if (sortBy == 'description'){
+            return this.description.compareTo(movieObj.description)*sortDirection;
+        }else if (sortBy == 'year'){
+            return this.year.compareTo(movieObj.year)*sortDirection;
+        }else if (sortBy == 'genres'){
+            String joined = String.join(movieObj.genres, ', ');
+            return String.join(this.genres, ', ').compareTo(joined)*sortDirection;
+        }else if (sortBy == 'id'){
+            return this.id.compareTo(movieObj.id)*sortDirection;
+        }    
+        return 0;
+    } 
+    
+    private void populateHeader(){
+        String joined = String.join(this.genres, ', ');
+        headerList = new List<MoviePaginatorWrapper.HeaderWrapper>();
+        headerList.add(new MoviePaginatorWrapper.HeaderWrapper('id',this.id));
+        headerList.add(new MoviePaginatorWrapper.HeaderWrapper('title',this.name));
+        headerList.add(new MoviePaginatorWrapper.HeaderWrapper('year',this.year));
+        headerList.add(new MoviePaginatorWrapper.HeaderWrapper('genres',joined));
+        headerList.add(new MoviePaginatorWrapper.HeaderWrapper('description',this.description));
+    }
+}

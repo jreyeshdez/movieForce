@@ -1,0 +1,192 @@
+public class MovieController {
+    public Integer default_pages;
+    public Integer page{
+        get;
+        set;
+    }
+    public List<MoviePaginatorWrapper> moviesPaginator{
+        get;
+        set;
+    }
+    public String sortBy{
+        get;
+        set;
+    }
+    public String sorting{
+        get;
+        set;
+    }
+    
+    public Movie__c movie { 
+        get; 
+        set; 
+    }
+    
+    public boolean displayPopup {
+        get; 
+        set;
+    }
+    
+    public string SelectedMovieId { 
+        get;
+        set;
+    }
+    
+    public boolean isMovie { 
+        get;
+        set;
+    }
+    
+    public List<Movie__c> allMovies;
+    
+    public MovieController(){
+        default_pages = 5;
+        page = 1;
+        sorting = 'DESC';
+        LoadMovies();
+    }
+    
+    private void LoadMovies() {
+       moviesPaginator = new List<MovieWrapper>();
+        allMovies = [SELECT id__c, Name, year__c, genres__c, description__c FROM Movie__c];
+        for(Movie__c movie : allMovies){
+            moviesPaginator.add(new MovieWrapper(movie));
+        }
+        sortMovies();
+   }
+    
+    public PageReference addNewMovie() {
+        if(isMovie == true){
+            try{
+                insert movie;
+                moviesPaginator.add(new MovieWrapper(movie));
+            }catch (Exception e){
+                ApexPages.Message errormsg = new ApexPages.Message(ApexPages.severity.ERROR,'An error has occured. Please check fields have been filled in.');
+                ApexPages.addMessage(errormsg);
+            }
+        }
+        closePopup();
+        LoadMovies();
+        return null;
+    }
+    
+    public Integer getTotalCount(){
+        return Integer.valueof(Math.ceil((Double)moviesPaginator.size()/(Double)default_pages));
+    }
+    
+    public Integer getMoviesSize(){
+        return moviesPaginator.size();
+    }
+    
+    public Boolean getHasPrevious(){
+        return (page != 1);
+    }
+    
+    public Boolean getIsSelected(){
+        return (SelectedMovieId != null);
+    }
+    
+    public Boolean getHasNext(){
+        return (page != getTotalCount());
+    }
+    
+    public PageReference previous(){
+        if(getHasPrevious()){
+            page--;
+        }
+        return null;
+    }
+    
+    public PageReference next(){
+        if(getHasNext()){
+            page++;
+        }
+        return null;
+    }
+    
+    public void first(){
+        page = 1;
+    }
+    
+    public void last(){
+        page = getTotalCount();
+    }
+    
+    public void sortMovies(){
+        for(MoviePaginatorWrapper moviePaginator: moviesPaginator){
+            moviePaginator.setSorting(sortBy,sorting);    
+        }
+        moviesPaginator.sort();
+    }
+    
+    public List<MoviePaginatorWrapper> getPaginateMovies(){
+        List<MoviePaginatorWrapper> paginateMovies = new List<MoviePaginatorWrapper>();
+        Integer first = getMinMovies()-1; 
+        Integer last = (first + default_pages) - 1; 
+        for(Integer i=first;i<=last && i<moviesPaginator.size();i++){
+            paginateMovies.add(moviesPaginator[i]);
+        }
+        return paginateMovies;
+    }
+    
+    public Integer getMinMovies(){
+        return (page-1)*default_pages+1;
+    }
+    
+    public Integer getMaxMovies(){
+        if((page*default_pages) > getMoviesSize()){
+            return (page*default_pages) - default_pages + 1;
+        }else{
+            return (page*default_pages);
+        }
+    }
+    
+    public List<String> getShowHeaders(){
+        List<String> headers = new List<String>();
+        List<MoviePaginatorWrapper> mpw = this.getPaginateMovies();
+        if(mpw != null){
+            if(mpw.size() > 0){
+                for(MoviePaginatorWrapper.HeaderWrapper header : this.getPaginateMovies()[0].headerList){
+                    if(header.label != 'id'){
+                        headers.add(header.label);
+                    }                                      
+                } 
+                if(sortBy == null){
+                    sortBy = headers[0];
+                    sortMovies();
+                }
+            }
+        }
+        return headers;
+    }
+    
+    public void closePopup(){ 
+        movie = null;       
+        displayPopup = false;    
+    } 
+
+    public void showPopup(){
+        movie = new Movie__c();        
+        displayPopup = true;     
+    }
+    
+    public PageReference DeleteMovie(){  
+      if (SelectedMovieId == null) {      
+         return null;
+      }
+
+      Movie__c tobeDeleted = null;
+      for(Movie__c mo : allMovies)
+       if (mo.id__c == SelectedMovieId) {
+          tobeDeleted = mo;
+          break;
+       }
+
+      if (tobeDeleted != null) {
+           Delete tobeDeleted;
+      }
+      LoadMovies();
+      SelectedMovieId = null;
+      return null;
+   }
+}

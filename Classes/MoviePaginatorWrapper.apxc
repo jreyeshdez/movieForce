@@ -1,0 +1,31 @@
+public abstract class MoviePaginatorWrapper implements Comparable {
+    protected String sortBy;
+    protected String sorting;
+    
+    public List<HeaderWrapper> headerList {
+        get;
+        set;
+    }
+    
+    public abstract Integer compareTo(Object compareTo);
+    
+    public void setSorting(String sortBy,String sorting){
+        this.sortBy = sortBy;
+        this.sorting = sorting;
+    }
+    
+    public class HeaderWrapper {
+        public String label {
+            get;
+            set;
+        }
+        public String value {
+            get;
+            set;
+        }
+        public HeaderWrapper (String label,String value){
+            this.label = label;
+            this.value = value;
+        }
+    }
+}
